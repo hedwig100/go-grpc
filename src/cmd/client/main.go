@@ -74,6 +74,8 @@ func contextWithMetadata() context.Context {
 }
 
 func Hello() {
+	var header, trailer metadata.MD
+
 	fmt.Print("please enter your name > ")
 
 	scanner.Scan()
@@ -81,7 +83,7 @@ func Hello() {
 	req := &hellopb.HelloRequest{
 		Name: name,
 	}
-	res, err := client.Hello(contextWithMetadata(), req)
+	res, err := client.Hello(contextWithMetadata(), req, grpc.Header(&header), grpc.Trailer(&trailer))
 	if err != nil {
 		if stat, ok := status.FromError(err); ok {
 			fmt.Printf("code: %s\n", stat.Code())
@@ -91,6 +93,8 @@ func Hello() {
 			fmt.Println(err)
 		}
 	} else {
+		fmt.Println(header)
+		fmt.Println(trailer)
 		fmt.Println(res.GetMessage())
 	}
 }
@@ -183,7 +187,16 @@ func HelloBiStreams() {
 			}
 		}
 
+		var headerMD metadata.MD
 		if !recvEnd {
+			if headerMD == nil {
+				headerMD, err = stream.Header()
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					fmt.Println(headerMD)
+				}
+			}
 			if res, err := stream.Recv(); err != nil {
 				if !errors.Is(err, io.EOF) {
 					fmt.Println(err)
@@ -194,4 +207,7 @@ func HelloBiStreams() {
 			}
 		}
 	}
+
+	trailerMD := stream.Trailer()
+	fmt.Println(trailerMD)
 }
